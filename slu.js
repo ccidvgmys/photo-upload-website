@@ -337,10 +337,18 @@ async function handleFormSubmit(event) {
             uploadedCount++;
         }
         progressText.textContent = `Successfully uploaded ${uploadedCount} photo(s) to ${formData.rakeName}_${formData.photoDate} folder`;
-        showStatus(`Successfully uploaded ${uploadedCount} photo(s) to new folder: ${formData.rakeName}_${formData.photoDate}`, 'success');
+        showStatus(`✅ Successfully uploaded ${uploadedCount} photo(s) to new folder: ${formData.rakeName}_${formData.photoDate}`, 'success');
+        
+        // Show detailed success information
+        console.log(`🎉 Upload completed successfully!`);
+        console.log(`📁 Folder: ${formData.rakeName}_${formData.photoDate}`);
+        console.log(`📸 Photos uploaded: ${uploadedCount}`);
+        console.log(`📅 Date: ${formData.photoDate}`);
+        console.log(`🚂 Rake: ${formData.rakeName}`);
+        
         setTimeout(() => {
             resetForm();
-        }, 3000);
+        }, 5000); // Increased delay to 5 seconds so user can see success message
     } catch (error) {
         console.error('Upload error:', error);
         showStatus('Error uploading files: ' + error.message, 'error');
@@ -351,12 +359,17 @@ async function handleFormSubmit(event) {
 
 async function uploadFile(file, originalFileName) {
     try {
+        console.log('Starting upload for:', originalFileName, 'Size:', formatFileSize(file.size));
+        
         // Convert file to base64
         const reader = new FileReader();
-        const fileData = await new Promise((resolve) => {
+        const fileData = await new Promise((resolve, reject) => {
             reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read file'));
             reader.readAsDataURL(file);
         });
+
+        console.log('File converted to base64, size:', fileData.length);
 
         const uploadData = {
             folder: 'SLU',
@@ -369,6 +382,14 @@ async function uploadFile(file, originalFileName) {
             mimeType: file.type
         };
 
+        console.log('Uploading to Netlify function with data:', {
+            folder: uploadData.folder,
+            rakeName: uploadData.rakeName,
+            photoDate: uploadData.photoDate,
+            fileName: uploadData.fileName,
+            fileSize: fileData.length
+        });
+
         const response = await fetch('/.netlify/functions/upload', {
             method: 'POST',
             headers: {
@@ -377,19 +398,26 @@ async function uploadFile(file, originalFileName) {
             body: JSON.stringify(uploadData)
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('HTTP error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
         const result = await response.json();
+        console.log('Upload result:', result);
         
         if (!result.success) {
             throw new Error(result.error || 'Upload failed');
         }
 
+        console.log('Upload successful for:', originalFileName);
         return result;
     } catch (error) {
-        console.error('Upload error:', error);
+        console.error('Upload error for', originalFileName, ':', error);
         throw error;
     }
 }
