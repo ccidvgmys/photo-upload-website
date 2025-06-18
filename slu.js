@@ -37,6 +37,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show mobile fallback button if on mobile
     if (isMobile()) {
         mobileFileBtn.style.display = 'block';
+        console.log('Mobile device detected - showing fallback button');
+    }
+    
+    // Debug: Add a visible test button for mobile
+    if (isMobile()) {
+        const debugBtn = document.createElement('button');
+        debugBtn.textContent = 'Test File Selection';
+        debugBtn.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; background: red; color: white; padding: 10px; border: none; border-radius: 5px;';
+        debugBtn.addEventListener('click', () => {
+            console.log('Debug button clicked');
+            fileInput.click();
+        });
+        document.body.appendChild(debugBtn);
     }
 });
 
@@ -49,19 +62,41 @@ function setMaxDate() {
 function setupEventListeners() {
     fileInput.addEventListener('change', handleFileSelect);
     
-    // Simple click handler for the upload area
+    // Better mobile support with multiple event types
     uploadArea.addEventListener('click', (e) => {
-        // Let the file input handle the click directly
-        e.preventDefault();
-        fileInput.click();
-    });
-    
-    // Mobile fallback button
-    mobileFileBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         fileInput.click();
     });
+    
+    // Add touch events for mobile
+    uploadArea.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fileInput.click();
+    });
+    
+    // Add pointer events for better mobile support
+    uploadArea.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fileInput.click();
+    });
+    
+    // Mobile fallback button
+    if (mobileFileBtn) {
+        mobileFileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        });
+        
+        mobileFileBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        });
+    }
     
     uploadArea.addEventListener('dragover', handleDragOver);
     uploadArea.addEventListener('dragleave', handleDragLeave);
