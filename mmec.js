@@ -33,12 +33,47 @@ function isMobile() {
            (window.innerWidth <= 768);
 }
 
+// Test Netlify function connection
+async function testNetlifyFunction() {
+    try {
+        console.log('Testing Netlify function connection...');
+        const response = await fetch('/.netlify/functions/upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                test: true,
+                folder: 'MMEC'
+            })
+        });
+        
+        console.log('Test response status:', response.status);
+        const result = await response.text();
+        console.log('Test response:', result);
+        
+        return response.ok;
+    } catch (error) {
+        console.error('Netlify function test failed:', error);
+        return false;
+    }
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     setMaxDate();
     showStatus('Select photos first, then enter details', 'info');
     updatePermissionStatus('ready');
+    
+    // Test Netlify function connection
+    testNetlifyFunction().then(isConnected => {
+        if (!isConnected) {
+            showStatus('⚠️ Warning: Unable to connect to upload service. Please check your connection.', 'error');
+        } else {
+            console.log('✅ Netlify function connection successful');
+        }
+    });
     
     // Show mobile fallback button if on mobile
     if (isMobile()) {
@@ -394,12 +429,19 @@ async function handleFormSubmit(event) {
         
         // Complete
         progressText.textContent = `Successfully uploaded ${uploadedCount} photo(s) to ${formData.rakeName}_${formData.photoDate} folder`;
-        showStatus(`Successfully uploaded ${uploadedCount} photo(s) to new folder: ${formData.rakeName}_${formData.photoDate}`, 'success');
+        showStatus(`✅ Successfully uploaded ${uploadedCount} photo(s) to new folder: ${formData.rakeName}_${formData.photoDate}`, 'success');
+        
+        // Show detailed success information
+        console.log(`🎉 Upload completed successfully!`);
+        console.log(`📁 Folder: ${formData.rakeName}_${formData.photoDate}`);
+        console.log(`📸 Photos uploaded: ${uploadedCount}`);
+        console.log(`📅 Date: ${formData.photoDate}`);
+        console.log(`🚂 Rake: ${formData.rakeName}`);
         
         // Reset form after delay
         setTimeout(() => {
             resetForm();
-        }, 3000);
+        }, 5000); // Increased delay to 5 seconds so user can see success message
         
     } catch (error) {
         console.error('Upload error:', error);
@@ -412,12 +454,17 @@ async function handleFormSubmit(event) {
 // Upload single file
 async function uploadFile(file, originalFileName) {
     try {
+        console.log('Starting upload for:', originalFileName, 'Size:', formatFileSize(file.size));
+        
         // Convert file to base64
         const reader = new FileReader();
-        const fileData = await new Promise((resolve) => {
+        const fileData = await new Promise((resolve, reject) => {
             reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read file'));
             reader.readAsDataURL(file);
         });
+
+        console.log('File converted to base64, size:', fileData.length);
 
         const uploadData = {
             folder: 'MMEC',
@@ -430,6 +477,14 @@ async function uploadFile(file, originalFileName) {
             mimeType: file.type
         };
 
+        console.log('Uploading to Netlify function with data:', {
+            folder: uploadData.folder,
+            rakeName: uploadData.rakeName,
+            photoDate: uploadData.photoDate,
+            fileName: uploadData.fileName,
+            fileSize: fileData.length
+        });
+
         const response = await fetch('/.netlify/functions/upload', {
             method: 'POST',
             headers: {
@@ -438,19 +493,26 @@ async function uploadFile(file, originalFileName) {
             body: JSON.stringify(uploadData)
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('HTTP error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
         const result = await response.json();
+        console.log('Upload result:', result);
         
         if (!result.success) {
             throw new Error(result.error || 'Upload failed');
         }
 
+        console.log('Upload successful for:', originalFileName);
         return result;
     } catch (error) {
-        console.error('Upload error:', error);
+        console.error('Upload error for', originalFileName, ':', error);
         throw error;
     }
 }
