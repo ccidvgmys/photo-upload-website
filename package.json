@@ -1,0 +1,13 @@
+{
+  "name": "photo-upload-website",
+  "version": "1.0.0",
+  "description": "Photo upload website with GitHub Pages and Netlify Functions",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build required'",
+    "test": "echo 'No tests specified'"
+  },
+  "keywords": ["photo-upload", "github-pages", "netlify-functions"],
+  "author": "",
+  "license": "ISC"
+} 
