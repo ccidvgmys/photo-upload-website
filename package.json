@@ -7,6 +7,9 @@
     "build": "echo 'No build required'",
     "test": "echo 'No tests specified'"
   },
+  "dependencies": {
+    "googleapis": "^128.0.0"
+  },
   "keywords": ["photo-upload", "github-pages", "netlify-functions"],
   "author": "",
   "license": "ISC"
