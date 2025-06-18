@@ -1,11 +1,13 @@
 // MMEC Photo Upload Configuration
 const UPLOAD_URL = '/upload';
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB original limit
+const COMPRESSED_MAX_SIZE = 5 * 1024 * 1024; // 5MB compressed limit
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 // Global variables
 let currentStep = 1;
 let selectedFiles = [];
+let compressedFiles = []; // Store compressed files
 let formData = {};
 
 // DOM elements
@@ -141,7 +143,7 @@ function handleDrop(event) {
 }
 
 // Add files to selection
-function addFiles(files) {
+async function addFiles(files) {
     const imageFiles = files.filter(file => {
         if (!file.type.startsWith('image/')) {
             showStatus(`${file.name} is not an image file`, 'error');
@@ -160,10 +162,47 @@ function addFiles(files) {
         return;
     }
     
-    selectedFiles = selectedFiles.concat(imageFiles);
-    updateFilePreview();
-    updateNextButton();
-    showStatus(`${imageFiles.length} photo(s) selected`, 'success');
+    // Show compression progress
+    showStatus(`Compressing ${imageFiles.length} photo(s)...`, 'info');
+    
+    try {
+        // Compress images
+        const compressionResults = await compressImages(imageFiles);
+        
+        // Store original and compressed files
+        selectedFiles = selectedFiles.concat(imageFiles);
+        compressedFiles = compressedFiles.concat(compressionResults.map(result => result.compressed));
+        
+        // Show compression summary
+        let totalOriginalSize = 0;
+        let totalCompressedSize = 0;
+        let compressionSummary = [];
+        
+        compressionResults.forEach(result => {
+            totalOriginalSize += result.originalSize;
+            totalCompressedSize += result.compressedSize;
+            compressionSummary.push(`${result.original.name}: ${formatFileSize(result.originalSize)} → ${formatFileSize(result.compressedSize)} (${result.compressionRatio}% smaller)`);
+        });
+        
+        const totalSavings = ((totalOriginalSize - totalCompressedSize) / totalOriginalSize * 100).toFixed(1);
+        showStatus(`Compression complete! Saved ${totalSavings}% space (${formatFileSize(totalOriginalSize)} → ${formatFileSize(totalCompressedSize)})`, 'success');
+        
+        // Log compression details
+        console.log('Compression Summary:', compressionSummary);
+        
+        updateFilePreview();
+        updateNextButton();
+        
+    } catch (error) {
+        console.error('Compression error:', error);
+        showStatus('Error compressing images. Using original files.', 'error');
+        
+        // Fallback to original files
+        selectedFiles = selectedFiles.concat(imageFiles);
+        compressedFiles = compressedFiles.concat(imageFiles);
+        updateFilePreview();
+        updateNextButton();
+    }
 }
 
 // Update file preview
@@ -198,6 +237,7 @@ function updateFilePreview() {
 // Remove file from selection
 function removeFile(index) {
     selectedFiles.splice(index, 1);
+    compressedFiles.splice(index, 1); // Remove compressed file too
     updateFilePreview();
     updateNextButton();
     
@@ -282,9 +322,24 @@ function collectFormData() {
 function updateReview() {
     document.getElementById('reviewRakeName').textContent = formData.rakeName;
     document.getElementById('reviewDate').textContent = formatDate(formData.photoDate);
-    document.getElementById('reviewDescription').textContent = formData.description || 'None';
+    document.getElementById('reviewDescription').textContent = formData.description || 'No description';
     document.getElementById('reviewPhotoCount').textContent = `${selectedFiles.length} photo(s)`;
-    document.getElementById('reviewFolder').textContent = `${formData.rakeName}_${formData.photoDate}`;
+    document.getElementById('reviewFolder').textContent = 'MMEC';
+    
+    // Add compression information
+    if (compressedFiles.length > 0) {
+        let totalOriginalSize = 0;
+        let totalCompressedSize = 0;
+        
+        selectedFiles.forEach((file, index) => {
+            totalOriginalSize += file.size;
+            totalCompressedSize += compressedFiles[index].size;
+        });
+        
+        const savings = ((totalOriginalSize - totalCompressedSize) / totalOriginalSize * 100).toFixed(1);
+        const sizeInfo = document.getElementById('reviewPhotoCount');
+        sizeInfo.innerHTML = `${selectedFiles.length} photo(s)<br><small>Size: ${formatFileSize(totalOriginalSize)} → ${formatFileSize(totalCompressedSize)} (${savings}% smaller)</small>`;
+    }
 }
 
 // Format date for display
@@ -295,6 +350,15 @@ function formatDate(dateString) {
         month: 'long',
         day: 'numeric'
     });
+}
+
+// Format file size for display
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 // Handle form submission
@@ -312,18 +376,19 @@ async function handleFormSubmit(event) {
         uploadBtn.disabled = true;
         
         let uploadedCount = 0;
-        const totalFiles = selectedFiles.length;
+        const totalFiles = compressedFiles.length; // Use compressed files
         
-        for (let i = 0; i < selectedFiles.length; i++) {
-            const file = selectedFiles[i];
+        for (let i = 0; i < compressedFiles.length; i++) {
+            const file = compressedFiles[i]; // Use compressed file
+            const originalFile = selectedFiles[i]; // For display name
             
             // Update progress
             const progress = ((i + 1) / totalFiles) * 100;
             progressFill.style.width = `${progress}%`;
-            progressText.textContent = `Uploading ${i + 1} of ${totalFiles}: ${file.name}`;
+            progressText.textContent = `Uploading ${i + 1} of ${totalFiles}: ${originalFile.name}`;
             
-            // Upload file with metadata and create folder
-            await uploadFile(file);
+            // Upload compressed file with metadata and create folder
+            await uploadFile(file, originalFile.name);
             uploadedCount++;
         }
         
@@ -345,7 +410,7 @@ async function handleFormSubmit(event) {
 }
 
 // Upload single file
-async function uploadFile(file) {
+async function uploadFile(file, originalFileName) {
     try {
         // Convert file to base64
         const reader = new FileReader();
@@ -354,14 +419,14 @@ async function uploadFile(file) {
             reader.readAsDataURL(file);
         });
 
-        const formData = {
+        const uploadData = {
             folder: 'MMEC',
             rakeName: formData.rakeName,
             photoDate: formData.photoDate,
             description: formData.description,
             createFolder: true,
             fileData: fileData,
-            fileName: file.name,
+            fileName: originalFileName || file.name, // Use original filename for display
             mimeType: file.type
         };
 
@@ -370,7 +435,7 @@ async function uploadFile(file) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(uploadData)
         });
 
         if (!response.ok) {
@@ -395,6 +460,7 @@ function resetForm() {
     // Reset form data
     mmecForm.reset();
     selectedFiles = [];
+    compressedFiles = []; // Clear compressed files
     formData = {};
     currentStep = 1;
     
@@ -455,4 +521,59 @@ function updatePermissionStatus(status) {
             statusElement.classList.add('denied');
             break;
     }
+}
+
+// Image compression function
+async function compressImage(file) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+            // Calculate new dimensions while maintaining aspect ratio
+            let { width, height } = img;
+            const maxDimension = 1920; // Max width/height
+            
+            if (width > height && width > maxDimension) {
+                height = (height * maxDimension) / width;
+                width = maxDimension;
+            } else if (height > maxDimension) {
+                width = (width * maxDimension) / height;
+                height = maxDimension;
+            }
+            
+            // Set canvas dimensions
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw and compress image
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Convert to blob with quality setting
+            canvas.toBlob((blob) => {
+                // Create new file with compressed data
+                const compressedFile = new File([blob], file.name, {
+                    type: file.type,
+                    lastModified: Date.now()
+                });
+                
+                resolve({
+                    original: file,
+                    compressed: compressedFile,
+                    originalSize: file.size,
+                    compressedSize: compressedFile.size,
+                    compressionRatio: ((file.size - compressedFile.size) / file.size * 100).toFixed(1)
+                });
+            }, file.type, 0.8); // 80% quality for JPEG, PNG will be lossless
+        };
+        
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+// Compress multiple images
+async function compressImages(files) {
+    const compressionPromises = files.map(file => compressImage(file));
+    return await Promise.all(compressionPromises);
 } 
