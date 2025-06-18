@@ -52,36 +52,18 @@ function setupEventListeners() {
     // File input change
     fileInput.addEventListener('change', handleFileSelect);
     
-    // Better mobile support with multiple event types
+    // Simple click handler for the upload area (for desktop)
     uploadArea.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        fileInput.click();
+        // Only trigger if not clicking on the file input itself
+        if (e.target !== fileInput) {
+            e.preventDefault();
+            fileInput.click();
+        }
     });
     
-    // Add touch events for mobile
-    uploadArea.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        fileInput.click();
-    });
-    
-    // Add pointer events for better mobile support
-    uploadArea.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        fileInput.click();
-    });
-    
-    // Mobile fallback button
+    // Mobile fallback button (if needed)
     if (mobileFileBtn) {
         mobileFileBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            fileInput.click();
-        });
-        
-        mobileFileBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
             e.stopPropagation();
             fileInput.click();
