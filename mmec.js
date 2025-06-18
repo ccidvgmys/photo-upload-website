@@ -52,19 +52,41 @@ function setupEventListeners() {
     // File input change
     fileInput.addEventListener('change', handleFileSelect);
     
-    // Simple click handler for the upload area
+    // Better mobile support with multiple event types
     uploadArea.addEventListener('click', (e) => {
-        // Let the file input handle the click directly
-        e.preventDefault();
-        fileInput.click();
-    });
-    
-    // Mobile fallback button
-    mobileFileBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         fileInput.click();
     });
+    
+    // Add touch events for mobile
+    uploadArea.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fileInput.click();
+    });
+    
+    // Add pointer events for better mobile support
+    uploadArea.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fileInput.click();
+    });
+    
+    // Mobile fallback button
+    if (mobileFileBtn) {
+        mobileFileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        });
+        
+        mobileFileBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        });
+    }
     
     // Drag and drop events
     uploadArea.addEventListener('dragover', handleDragOver);
