@@ -141,9 +141,9 @@ exports.handler = async (event, context) => {
 
     console.log('Final filename:', finalFileName);
 
-    // Convert base64 to buffer
-    const fileBuffer = Buffer.from(fileData.split(',')[1], 'base64');
-    console.log('File buffer size:', fileBuffer.length, 'bytes');
+    // Keep the base64 data as string instead of converting to buffer
+    const base64Data = fileData.split(',')[1];
+    console.log('Base64 data length:', base64Data.length);
 
     // Upload to Google Drive
     const fileMetadata = {
@@ -152,15 +152,21 @@ exports.handler = async (event, context) => {
       description: description ? `Rake: ${rakeName}, Date: ${photoDate}, Description: ${description}` : undefined
     };
 
-    const media = {
-      mimeType: mimeType,
-      body: fileBuffer
-    };
-
     console.log('Uploading to Google Drive...');
+    
+    // Create a proper stream for the media
+    const { Readable } = require('stream');
+    const buffer = Buffer.from(base64Data, 'base64');
+    const stream = new Readable();
+    stream.push(buffer);
+    stream.push(null);
+    
     const response = await drive.files.create({
       resource: fileMetadata,
-      media: media,
+      media: {
+        mimeType: mimeType,
+        body: stream
+      },
       fields: 'id,name,webViewLink'
     });
 
