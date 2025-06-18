@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLU Photo Upload</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-top">
+                <a href="index.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back
+                </a>
+                <h1><i class="fas fa-folder"></i> SLU Upload</h1>
+            </div>
+            <p>Upload photos to SLU folder with details</p>
+        </header>
+
+        <main class="main-content">
+            <form id="sluForm" class="upload-form">
+                <!-- Step 1: Photo Selection -->
+                <div class="form-step" id="step1">
+                    <h3><i class="fas fa-camera"></i> Select Photos</h3>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <h4>Choose Photos</h4>
+                        <p>Tap anywhere in this area to select photos</p>
+                        <input type="file" id="fileInput" multiple accept="image/*" style="position: absolute; opacity: 0; width: 100%; height: 100%; top: 0; left: 0; cursor: pointer;">
+                        <!-- Mobile fallback button -->
+                        <button type="button" id="mobileFileBtn" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; border: none; z-index: 5; display: none;">
+                            Select Photos
+                        </button>
+                    </div>
+                    <div class="preview-section" id="previewSection" style="display: none;">
+                        <h4>Selected Photos</h4>
+                        <div class="photo-grid" id="photoGrid"></div>
+                    </div>
+                    <button type="button" class="next-btn" onclick="nextStep()" id="nextStep1Btn" disabled>
+                        Next: Enter Details
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+                <!-- Step 2: Details -->
+                <div class="form-step" id="step2" style="display: none;">
+                    <h3><i class="fas fa-info-circle"></i> Photo Details</h3>
+                    <div class="form-group">
+                        <label for="rakeName">Rake Name *</label>
+                        <input type="text" id="rakeName" name="rakeName" required placeholder="Enter rake name" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="photoDate">Date *</label>
+                        <input type="date" id="photoDate" name="photoDate" required class="form-input" max="">
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description (Optional)</label>
+                        <textarea id="description" name="description" placeholder="Add any additional notes..." class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="step-buttons">
+                        <button type="button" class="back-btn" onclick="prevStep()">
+                            <i class="fas fa-arrow-left"></i>
+                            Back
+                        </button>
+                        <button type="button" class="next-btn" onclick="nextStep()">
+                            Next: Review & Upload
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Step 3: Review & Upload -->
+                <div class="form-step" id="step3" style="display: none;">
+                    <h3><i class="fas fa-check-circle"></i> Review & Upload</h3>
+                    <div class="review-section">
+                        <div class="review-item">
+                            <strong>Rake Name:</strong>
+                            <span id="reviewRakeName"></span>
+                        </div>
+                        <div class="review-item">
+                            <strong>Date:</strong>
+                            <span id="reviewDate"></span>
+                        </div>
+                        <div class="review-item">
+                            <strong>Description:</strong>
+                            <span id="reviewDescription"></span>
+                        </div>
+                        <div class="review-item">
+                            <strong>Photos:</strong>
+                            <span id="reviewPhotoCount"></span>
+                        </div>
+                        <div class="review-item">
+                            <strong>Folder:</strong>
+                            <span id="reviewFolder"></span>
+                        </div>
+                    </div>
+                    <div class="progress-section" id="progressSection" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p class="progress-text" id="progressText">Uploading...</p>
+                    </div>
+                    <div class="step-buttons">
+                        <button type="button" class="back-btn" onclick="prevStep()">
+                            <i class="fas fa-arrow-left"></i>
+                            Back
+                        </button>
+                        <button type="submit" class="upload-btn" id="uploadBtn">
+                            <i class="fas fa-upload"></i>
+                            Upload to SLU Folder
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="status-section">
+                <div class="status-message" id="statusMessage"></div>
+            </div>
+        </main>
+        <footer class="footer">
+            <p>&copy; 2024 Photo Upload. SLU Folder Upload</p>
+        </footer>
+    </div>
+    <script src="slu.js"></script>
+</body>
+</html> 
