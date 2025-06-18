@@ -12,6 +12,7 @@ let formData = {};
 const mmecForm = document.getElementById('mmecForm');
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
+const fileInputLabel = document.getElementById('fileInputLabel');
 const mobileFileBtn = document.getElementById('mobileFileBtn');
 const uploadBtn = document.getElementById('uploadBtn');
 const progressSection = document.getElementById('progressSection');
@@ -21,6 +22,8 @@ const previewSection = document.getElementById('previewSection');
 const photoGrid = document.getElementById('photoGrid');
 const statusMessage = document.getElementById('statusMessage');
 const nextStep1Btn = document.getElementById('nextStep1Btn');
+const permissionNotice = document.getElementById('permissionNotice');
+const permissionStatus = document.getElementById('permissionStatus');
 
 // Check if device is mobile
 function isMobile() {
@@ -33,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     setMaxDate();
     showStatus('Select photos first, then enter details', 'info');
+    updatePermissionStatus('ready');
     
     // Show mobile fallback button if on mobile
     if (isMobile()) {
@@ -52,11 +56,23 @@ function setupEventListeners() {
     // File input change
     fileInput.addEventListener('change', handleFileSelect);
     
+    // File input click - update permission status
+    fileInput.addEventListener('click', () => {
+        updatePermissionStatus('requesting');
+        showStatus('Browser is requesting permission to access photos...', 'info');
+    });
+    
+    // File input focus - for permission detection
+    fileInput.addEventListener('focus', () => {
+        updatePermissionStatus('requesting');
+    });
+    
     // Simple click handler for the upload area (for desktop)
     uploadArea.addEventListener('click', (e) => {
         // Only trigger if not clicking on the file input itself
-        if (e.target !== fileInput) {
+        if (e.target !== fileInput && e.target !== fileInputLabel) {
             e.preventDefault();
+            updatePermissionStatus('requesting');
             fileInput.click();
         }
     });
@@ -82,7 +98,19 @@ function setupEventListeners() {
 // Handle file selection
 function handleFileSelect(event) {
     const files = Array.from(event.target.files);
-    addFiles(files);
+    
+    if (files.length > 0) {
+        // Permission was granted and files were selected
+        updatePermissionStatus('granted');
+        showStatus('Permission granted! Files selected successfully', 'success');
+        addFiles(files);
+    } else {
+        // No files selected - might be permission denied
+        setTimeout(() => {
+            updatePermissionStatus('denied');
+            showStatus('No files selected. Please check browser permissions and try again', 'error');
+        }, 1000);
+    }
 }
 
 // Handle drag over
@@ -396,4 +424,35 @@ function showStatus(message, type) {
     setTimeout(() => {
         statusMessage.style.display = 'none';
     }, 5000);
+}
+
+// Update permission status display
+function updatePermissionStatus(status) {
+    const statusElement = permissionStatus;
+    const icon = statusElement.querySelector('i');
+    const text = statusElement.querySelector('span');
+    
+    // Remove existing classes
+    statusElement.classList.remove('granted', 'denied');
+    
+    switch(status) {
+        case 'ready':
+            icon.className = 'fas fa-info-circle';
+            text.textContent = 'Ready to request permission';
+            break;
+        case 'requesting':
+            icon.className = 'fas fa-clock';
+            text.textContent = 'Requesting permission...';
+            break;
+        case 'granted':
+            icon.className = 'fas fa-check-circle';
+            text.textContent = 'Permission granted! You can now select photos';
+            statusElement.classList.add('granted');
+            break;
+        case 'denied':
+            icon.className = 'fas fa-times-circle';
+            text.textContent = 'Permission denied. Please allow access to photos';
+            statusElement.classList.add('denied');
+            break;
+    }
 } 
