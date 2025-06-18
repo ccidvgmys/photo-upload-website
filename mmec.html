@@ -33,7 +33,8 @@
                         </div>
                         <h4>Choose Photos</h4>
                         <p>Tap anywhere in this area to select photos</p>
-                        <input type="file" id="fileInput" multiple accept="image/*" style="position: absolute; opacity: 0; width: 100%; height: 100%; top: 0; left: 0; cursor: pointer;">
+                        <!-- Mobile-friendly file input -->
+                        <input type="file" id="fileInput" multiple accept="image/*" style="display: block; width: 100%; height: 50px; margin: 10px 0; border: 2px dashed #667eea; border-radius: 8px; background: #f8f9fa; cursor: pointer;">
                         <!-- Mobile fallback button -->
                         <button type="button" id="mobileFileBtn" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; border: none; z-index: 5; display: none;">
                             Select Photos
