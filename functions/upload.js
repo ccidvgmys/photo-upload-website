@@ -85,9 +85,34 @@ exports.handler = async (event, context) => {
     }
 
     const body = JSON.parse(event.body);
+    
+    // Handle test requests
+    if (body.test === true) {
+      console.log('Test request received');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          success: true, 
+          message: 'Netlify function is working',
+          timestamp: new Date().toISOString()
+        })
+      };
+    }
+
     const { folder, rakeName, photoDate, description, createFolder, fileData, fileName, mimeType } = body;
 
+    console.log('Upload request received:', {
+      folder,
+      rakeName,
+      photoDate,
+      fileName,
+      fileDataLength: fileData ? fileData.length : 0,
+      mimeType
+    });
+
     if (!fileData || !fileName) {
+      console.error('Missing file data or filename');
       return {
         statusCode: 400,
         headers,
@@ -101,7 +126,9 @@ exports.handler = async (event, context) => {
     // Create new folder if requested
     if (createFolder === true && rakeName && photoDate) {
       const newFolderName = `${rakeName}_${photoDate}`;
+      console.log('Creating folder:', newFolderName);
       targetFolderId = await createOrGetFolder(newFolderName, baseFolderId);
+      console.log('Folder created/accessed with ID:', targetFolderId);
     }
 
     // Create filename with metadata
@@ -112,8 +139,11 @@ exports.handler = async (event, context) => {
       finalFileName = `${rakeName}_${photoDate}_${baseName}${fileExtension}`;
     }
 
+    console.log('Final filename:', finalFileName);
+
     // Convert base64 to buffer
     const fileBuffer = Buffer.from(fileData.split(',')[1], 'base64');
+    console.log('File buffer size:', fileBuffer.length, 'bytes');
 
     // Upload to Google Drive
     const fileMetadata = {
@@ -127,11 +157,14 @@ exports.handler = async (event, context) => {
       body: fileBuffer
     };
 
+    console.log('Uploading to Google Drive...');
     const response = await drive.files.create({
       resource: fileMetadata,
       media: media,
       fields: 'id,name,webViewLink'
     });
+
+    console.log('Google Drive upload successful:', response.data);
 
     const folderName = createFolder && rakeName && photoDate ? `${rakeName}_${photoDate}` : folder;
 
@@ -156,7 +189,8 @@ exports.handler = async (event, context) => {
       headers,
       body: JSON.stringify({
         error: 'Failed to upload file',
-        details: error.message
+        details: error.message,
+        stack: error.stack
       })
     };
   }
