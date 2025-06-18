@@ -1,0 +1,15 @@
+{
+  "name": "photo-upload-functions",
+  "version": "1.0.0",
+  "description": "Netlify functions for photo upload to Google Drive",
+  "main": "upload.js",
+  "dependencies": {
+    "googleapis": "^128.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["netlify", "functions", "google-drive", "photo-upload"],
+  "author": "",
+  "license": "ISC"
+} 
